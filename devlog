@@ -171,7 +171,7 @@ local function pageListDevices()
 	}
 	local typeBox = gui.newListBox{
 		bounds = {2, 3, 8, screenH - 6},
-		items = {}
+		items = {},
 		select = function()
 			local t = typeBox.items[typeBox.selectedItems]
 			listBox.items = queryDevByType(t):select("name")
@@ -232,7 +232,7 @@ local function pageShowDevice(devName)
 	end
 	gui.newButton{
 		text = "View Raw Data",
-		bounds = {1, screenH, screenW, 1}
+		bounds = {1, screenH, screenW, 1},
 		click = function()
 			updateDeviceHandler = nil
 			pageShowRawDevice(devName)
@@ -279,8 +279,8 @@ local function pageShowRawDevice(devName)
 	end
 	updateList()
 	gui.newButton{
-		text = "< Prev"
-		bounds = {2, 3 + pageSize, screenW / 2 - 3, 1}
+		text = "< Prev",
+		bounds = {2, 3 + pageSize, screenW / 2 - 3, 1},
 		click = function()
 			if page <= 1 then
 				return
@@ -290,8 +290,8 @@ local function pageShowRawDevice(devName)
 		end
 	}
 	gui.newButton{
-		text = "Next >"
-		bounds = {screenW / 2 + 3, 3 + pageSize, screenW / 2 - 3, 1}
+		text = "Next >",
+		bounds = {screenW / 2 + 3, 3 + pageSize, screenW / 2 - 3, 1},
 		click = function()
 			page = page + 1
 			updateList()
