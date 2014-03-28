@@ -1,0 +1,35 @@
+os.loadAPI "extlib/gui"
+
+-- a data graph, data is queued in, then drops off
+local _graph = {}
+_graph.__index = _graph
+
+function newGraph(o)
+	o.bounds = o.bounds or rect.new{}
+	o.color = o.color or colors.white
+	o.fill = o.fill or colors.gray
+	o.cache = {}
+
+	return gui.newWidget(o, _graph)
+end
+
+function _graph:draw(screen, highlight)
+	self.bounds:fill(screen, colors.black)
+	
+	-- iterate each value in cache
+	for i = 1, #self.cache do
+		local x = self.bounds.x + self.bounds.width - i
+		local y = self.bounds.y + (1-self.cache[i]) * (self.bounds.height - 1)
+		
+		gui.setPixel(screen, x, y, self.color)
+		local frect = rect{x, y + 1, self.bounds.y + self.bounds.height - y, 1}
+		frect:fill(screen, colors.fill)
+	end
+end
+
+function _graph:addValue(value)
+	table.insert(self.cache, 1, value)
+	if #self.cache > self.bounds.width then
+		table.remove(self.cache)
+	end
+end

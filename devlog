@@ -1,0 +1,326 @@
+-- device log program
+-- by Tastyfish
+
+os.loadAPI "/extlib/dev"
+os.loadAPI "/extlib/gui"
+os.loadAPI "/extlib/db"
+os.loadAPI "/devlog/graph"
+
+local logDB = db.open("/devlog.log.db")
+local devDB = db.open("/devlog.dev.db")
+local modem = dev.get("modem")
+local screen = term
+local screenW, screenH = screen.getSize()
+local timerInterval = 2 * 60 -- 2 minutes
+
+local updateTimer = os.startTimer(timerInterval)
+
+local function queryLogByName(name, count, skip)
+	local q = logDB:query():where("$name == ?", name):sortByDescending("date")
+	if skip then
+		q:skip(skip)
+	end
+	if count then
+		q:take(count)
+	end
+	return q
+end
+
+local function queryDevByType(name)
+	local q = devDB:query():where("$type == ?", name):sortByAscending("name")
+	return q
+end
+
+local function getDevice(name)
+	return devDB:query():where("$name = ?", name):selectFirst()
+end
+
+local getValueTab {
+	tank = function(dev)
+		return dev.getLiquidLevel() / dev.getLiquidMax()
+	end,
+	power = function(dev)
+		return dev.getPowerLevel() / dev.getPowerMax()
+	end
+}
+
+local function logDeviceValue(dev)
+	local val = getValueTab[dev.type](dev)
+	logDB:insert{
+		name = dev.name,
+		date = os.time(),
+		value = val
+	}
+	if updateDeviceHandler then
+		updateDeviceHandler(dev.name, val)
+	end
+end
+
+local function logAllDevices()
+	for d in devDB:query():iterate() do
+		local dev = peripheral.wrap(d.path)
+		logDeviceValue(dev)
+	end
+end
+
+local function addDevice(name, tname, path)
+	devDB:insert{
+		name = name,
+		type = tname,
+		path = path
+	}
+end
+
+local function pageMainMenu()
+	gui.finishForm()
+	gui.newLabel{
+		text = "Industrial Device Logger",
+		color = colors.cyan,
+		bounds = {1, 1, screenW, screenH / 2}
+	}
+	gui.newButton{
+		text = "View Device Log",
+		bounds = {2, screenH / 2, screenW - 2, screenH / 4},
+		color = colors.green,
+		highlight = colors.lime,
+		click = function()
+			pageListDevices()
+		end,
+	}
+	gui.newButton{
+		text = "+",
+		color = colors.yellow,
+		highlight = colors.black,
+		bounds = {1, screenH, 3, 1},
+		click = function()
+			pageAddDevice()
+		end
+	}
+end
+
+local function pageAddDevice()
+	gui.finishForm()
+	gui.newLabel{
+		text = "Add Device",
+		color = colors.cyan,
+		bounds = {1, 1, screenW, 1},
+	}
+	gui.newLabel{
+		text = "Name:",
+		align = "far",
+		bounds = {2, 3, 12, 1}
+	}
+	local nameBox = gui.newTextbox{
+		bounds = {15, 3, screenW - 15, 1}
+	}
+	gui.newLabel{
+		text = "Type:",
+		align = "far",
+		bounds = {2, 5, 12, 1}
+	}
+	local tbh = #getValueTab
+	local typeBox = gui.newListBox{
+		bounds = {15, 5, screenW - 15, #getValueTab}
+	}
+	for k,v in pairs(getValueTab) do
+		table.insert(textBox.items, k)
+	end
+	gui.newLabel{
+		text = "Path:",
+		align = "far",
+		bounds = {2, 6+tbh, 12, 1}
+	}
+	local pathBox = gui.newTextbox{
+		bounds = {15, 6+tbh, screenW - 15, 1}
+	}
+	gui.newButton{
+		text = "New",
+		color = colors.green,
+		highlight = colors.lime,
+		bounds = {screenW - 6, 8+tbh, 5, 3},
+		click = function()
+			if nameBox.text ~= "" and pathBox.text ~= "" and typeBox.selectedItem > 0 then
+				addDevice(nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
+			else
+				screen.clear()
+				print("Invalid input")
+				sleep(1)
+				screen.clear()
+				gui.draw()
+			end
+		end
+	}
+	gui.newButton{
+		text = "Cancel",
+		color = colors.red,
+		highlight = colors.yellow,
+		bounds = {2, 8+tbh, 5, 3},
+		click = function()
+			pageMainMenu()
+		end
+	}
+	gui.draw(screen)
+end
+
+local function pageListDevices()
+	gui.finishForm()
+	gui.newLabel{
+		text = "Select Device"..(byType and " - "..byType or ""),
+		color = colors.cyan,
+		bounds = {1, 1, screenW, 1},
+	}
+	local typeBox = gui.newListBox{
+		bounds = {2, 3, 8, screenH - 6},
+		items = {}
+		for k,_ in pairs(getValueTab) do
+			table.insert(items, k)
+		end
+		select = function()
+			local t = typeBox.items[typeBox.selectedItems]
+			listBox.items = queryDevByType(t):select("name")
+			listBox.selectedItem = 1
+			listBox.scrollItem = 1
+			listBox.draw(screen)
+		end,
+	}
+	local listBox = gui.newListBox{
+		bounds = {11, 3, screenW - 12, screenH - 4},
+		items = devDB:query():sortByAscending("name"):select("name"),
+		select = function()
+			pageShowDevice(devName)
+		end,
+	}
+	gui.newButton{
+		text = "Cancel",
+		color = colors.red,
+		highlight = colors.yellow,
+		click = function()
+			pageMainMenu()
+		end
+	}
+	gui.draw(screen)
+end
+
+local updateDeviceHandler = nil
+
+local function pageShowDevice(devName)
+	local device = getDevice(devName)
+	
+	gui.finishForm()
+	gui.newLabel{
+		text = "View Device - "..device.name.." [ "..device.type.." ]",
+		color = colors.cyan,
+		bounds = {1, 1, screenW - 3, 1},
+	}
+	gui.newButton{
+		text = "X",
+		bounds = {screenW - 2, 1, 3, 1},
+		color = colors.red,
+		color = colors.yellow,
+		click = function()
+			updateDeviceHandler = nil
+			pageListDevices()
+		end,
+	}
+	local valG = graph.newGraph{
+		bounds = {1, 3, screenW, screenH - 4},
+		color = colors.yellow,
+		fill = colors.green
+	}
+	for val in queryLogByName(device.name, screenW):sortByAscending("date") do
+		valG:addValue(val)
+	end
+	gui.newButton{
+		text = "View Raw Data",
+		bounds = {1, screenH, screenW, 1}
+		click = function()
+			updateDeviceHandler = nil
+			pageShowRawDevice(devName)
+		end
+	}
+	gui.draw(screen)
+	
+	updateDeviceHandler = function(devname, val)
+		if device.name == devname then
+			valG:addValue(val)
+			valG:draw(screen)
+		end
+	end
+end
+
+local function pageShowRawDevice(devName)
+	local device = getDevice(devName)
+	local page = 1
+	local pageSize = screenH - 4
+	
+	gui.finishForm()
+	gui.newLabel{
+		text = "View Device - "..device.name.." [ "..device.type.." ]",
+		color = colors.cyan,
+		bounds = {1, 1, screenW - 3, 1},
+	}
+	gui.newButton{
+		text = "X",
+		bounds = {screenW - 2, 1, 3, 1},
+		color = colors.red,
+		color = colors.yellow,
+		click = function()
+			pageShowDevice(devName)
+		end,
+	}
+	local listBox = gui.newListBox{
+		bounds = {2, 3, screenW - 2, pageSize}
+	}
+	local function updateList()
+		pageLabel.text = tostring(page)
+		pageLabel:draw(screen)
+		listBox.items = queryLogByName(devName, screenH - 4, page * pageSize - 1)
+		listBox:draw(screen)
+	end
+	updateList()
+	gui.newButton{
+		text = "< Prev"
+		bounds = {2, 3 + pageSize, screenW / 2 - 3, 1}
+		click = function()
+			if page <= 1 then
+				return
+			end
+			page = page - 1
+			updateList()
+		end
+	}
+	gui.newButton{
+		text = "Next >"
+		bounds = {screenW / 2 + 3, 3 + pageSize, screenW / 2 - 3, 1}
+		click = function()
+			page = page + 1
+			updateList()
+		end
+	}
+	local pageLabel = gui.newLabel{
+		text = "1",
+		bounds = {screenW / 2 - 1, 3 + pageSize, 4, 1},
+		color = colors.yellow
+	}
+	gui.draw(screen)
+end
+
+-- main program loop
+pageMainMenu()
+while true do
+	local event, p1, p2, p3, p4 = os.pullEvent()
+	if event == "mouse_click" then
+		gui.click(screen, p2, p3)
+	elseif event == "mouse_drag" then
+		gui.drag(screen, p2, p3)
+	elseif event == "char" then
+		gui.keypress(screen, p1, true)
+	elseif event == "key" then
+		gui.keypress(screen, p1, false)
+	elseif event == "timer" then
+		if p1 == updateTimer then
+			logAllDevices()
+			updateTimer = os.startTimer(timerInterval)
+		end
+	end
+end
