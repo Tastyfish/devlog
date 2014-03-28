@@ -6,8 +6,12 @@ os.loadAPI "/extlib/gui"
 os.loadAPI "/extlib/db"
 os.loadAPI "/devlog/graph"
 
-local logDB = db.open("/devlog.log.db")
-local devDB = db.open("/devlog.dev.db")
+local logDB = fs.exists("/devlog.log.db") and
+	db.open("/devlog.log.db") or
+	db.create("/devlog.log.db", {name="string", data="date", value="number"})
+local devDB = fs.exists("/devlog.dev.db") and
+	db.open("/devlog.dev.db") or
+	db.create("/devlog.dev.db", {name="string", type="string", path="path"})
 local modem = dev.get("modem")
 local screen = term
 local screenW, screenH = screen.getSize()
