@@ -35,7 +35,7 @@ local function getDevice(name)
 	return devDB:query():where("$name = ?", name):selectFirst()
 end
 
-local getValueTab {
+local getValueTab = {
 	tank = function(dev)
 		return dev.getLiquidLevel() / dev.getLiquidMax()
 	end,
@@ -172,9 +172,6 @@ local function pageListDevices()
 	local typeBox = gui.newListBox{
 		bounds = {2, 3, 8, screenH - 6},
 		items = {}
-		for k,_ in pairs(getValueTab) do
-			table.insert(items, k)
-		end
 		select = function()
 			local t = typeBox.items[typeBox.selectedItems]
 			listBox.items = queryDevByType(t):select("name")
@@ -183,6 +180,9 @@ local function pageListDevices()
 			listBox.draw(screen)
 		end,
 	}
+	for k,_ in pairs(getValueTab) do
+		table.insert(items, k)
+	end
 	local listBox = gui.newListBox{
 		bounds = {11, 3, screenW - 12, screenH - 4},
 		items = devDB:query():sortByAscending("name"):select("name"),
