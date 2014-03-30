@@ -11,7 +11,7 @@ local logDB = fs.exists("/devlog.log.db") and
 	db.create("/devlog.log.db", {name="string", data="date", value="number"})
 local devDB = fs.exists("/devlog.dev.db") and
 	db.open("/devlog.dev.db") or
-	db.create("/devlog.dev.db", {name="string", type="string", path="path"})
+	db.create("/devlog.dev.db", {name="string", type="string", path="string"})
 local modem = dev.get("modem")
 local screen = term
 local screenW, screenH = screen.getSize()
@@ -80,11 +80,11 @@ local function pageMainMenu()
 	gui.newLabel{
 		text = "Industrial Device Logger",
 		color = colors.cyan,
-		bounds = {1, 1, screenW, screenH / 2}
+		bounds = rect.new(1, 1, screenW, screenH / 2)
 	}
 	gui.newButton{
 		text = "View Device Log",
-		bounds = {2, screenH / 2, screenW - 2, screenH / 4},
+		bounds = rect.new(2, screenH / 2, screenW - 2, screenH / 4),
 		color = colors.green,
 		highlight = colors.lime,
 		click = function()
@@ -95,11 +95,12 @@ local function pageMainMenu()
 		text = "+",
 		color = colors.yellow,
 		highlight = colors.black,
-		bounds = {1, screenH, 3, 1},
+		bounds = rect.new(1, screenH, 3, 1),
 		click = function()
 			pageAddDevice()
 		end
 	}
+	gui.draw(screen)
 end
 
 local function pageAddDevice()
@@ -107,24 +108,24 @@ local function pageAddDevice()
 	gui.newLabel{
 		text = "Add Device",
 		color = colors.cyan,
-		bounds = {1, 1, screenW, 1},
+		bounds = rect.new(1, 1, screenW, 1),
 	}
 	gui.newLabel{
 		text = "Name:",
 		align = "far",
-		bounds = {2, 3, 12, 1}
+		bounds = rect.new(2, 3, 12, 1)
 	}
 	local nameBox = gui.newTextbox{
-		bounds = {15, 3, screenW - 15, 1}
+		bounds = rect.new(15, 3, screenW - 15, 1)
 	}
 	gui.newLabel{
 		text = "Type:",
 		align = "far",
-		bounds = {2, 5, 12, 1}
+		bounds = rect.new(2, 5, 12, 1)
 	}
 	local tbh = #getValueTab
 	local typeBox = gui.newListBox{
-		bounds = {15, 5, screenW - 15, #getValueTab}
+		bounds = rect.new(15, 5, screenW - 15, #getValueTab)
 	}
 	for k,v in pairs(getValueTab) do
 		table.insert(textBox.items, k)
@@ -132,16 +133,16 @@ local function pageAddDevice()
 	gui.newLabel{
 		text = "Path:",
 		align = "far",
-		bounds = {2, 6+tbh, 12, 1}
+		bounds = rect.new(2, 6+tbh, 12, 1)
 	}
 	local pathBox = gui.newTextbox{
-		bounds = {15, 6+tbh, screenW - 15, 1}
+		bounds = rect.new(15, 6+tbh, screenW - 15, 1)
 	}
 	gui.newButton{
 		text = "New",
 		color = colors.green,
 		highlight = colors.lime,
-		bounds = {screenW - 6, 8+tbh, 5, 3},
+		bounds = rect.new(screenW - 6, 8+tbh, 5, 3),
 		click = function()
 			if nameBox.text ~= "" and pathBox.text ~= "" and typeBox.selectedItem > 0 then
 				addDevice(nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
@@ -158,7 +159,7 @@ local function pageAddDevice()
 		text = "Cancel",
 		color = colors.red,
 		highlight = colors.yellow,
-		bounds = {2, 8+tbh, 5, 3},
+		bounds = rect.new(2, 8+tbh, 5, 3),
 		click = function()
 			pageMainMenu()
 		end
@@ -171,10 +172,10 @@ local function pageListDevices()
 	gui.newLabel{
 		text = "Select Device"..(byType and " - "..byType or ""),
 		color = colors.cyan,
-		bounds = {1, 1, screenW, 1},
+		bounds = rect.new(1, 1, screenW, 1),
 	}
 	local typeBox = gui.newListBox{
-		bounds = {2, 3, 8, screenH - 6},
+		bounds = rect.new(2, 3, 8, screenH - 6),
 		items = {},
 		select = function()
 			local t = typeBox.items[typeBox.selectedItems]
@@ -188,7 +189,7 @@ local function pageListDevices()
 		table.insert(items, k)
 	end
 	local listBox = gui.newListBox{
-		bounds = {11, 3, screenW - 12, screenH - 4},
+		bounds = rect.new(11, 3, screenW - 12, screenH - 4),
 		items = devDB:query():sortByAscending("name"):select("name"),
 		select = function()
 			pageShowDevice(devName)
@@ -214,11 +215,11 @@ local function pageShowDevice(devName)
 	gui.newLabel{
 		text = "View Device - "..device.name.." [ "..device.type.." ]",
 		color = colors.cyan,
-		bounds = {1, 1, screenW - 3, 1},
+		bounds = rect.new(1, 1, screenW - 3, 1),
 	}
 	gui.newButton{
 		text = "X",
-		bounds = {screenW - 2, 1, 3, 1},
+		bounds = rect.new(screenW - 2, 1, 3, 1),
 		color = colors.red,
 		color = colors.yellow,
 		click = function()
@@ -227,7 +228,7 @@ local function pageShowDevice(devName)
 		end,
 	}
 	local valG = graph.newGraph{
-		bounds = {1, 3, screenW, screenH - 4},
+		bounds = rect.new(1, 3, screenW, screenH - 4),
 		color = colors.yellow,
 		fill = colors.green
 	}
@@ -236,7 +237,7 @@ local function pageShowDevice(devName)
 	end
 	gui.newButton{
 		text = "View Raw Data",
-		bounds = {1, screenH, screenW, 1},
+		bounds = rect.new(1, screenH, screenW, 1),
 		click = function()
 			updateDeviceHandler = nil
 			pageShowRawDevice(devName)
@@ -261,11 +262,11 @@ local function pageShowRawDevice(devName)
 	gui.newLabel{
 		text = "View Device - "..device.name.." [ "..device.type.." ]",
 		color = colors.cyan,
-		bounds = {1, 1, screenW - 3, 1},
+		bounds = rect.new(1, 1, screenW - 3, 1),
 	}
 	gui.newButton{
 		text = "X",
-		bounds = {screenW - 2, 1, 3, 1},
+		bounds = rect.new(screenW - 2, 1, 3, 1),
 		color = colors.red,
 		color = colors.yellow,
 		click = function()
@@ -273,7 +274,7 @@ local function pageShowRawDevice(devName)
 		end,
 	}
 	local listBox = gui.newListBox{
-		bounds = {2, 3, screenW - 2, pageSize}
+		bounds = rect.new(2, 3, screenW - 2, pageSize)
 	}
 	local function updateList()
 		pageLabel.text = tostring(page)
@@ -284,7 +285,7 @@ local function pageShowRawDevice(devName)
 	updateList()
 	gui.newButton{
 		text = "< Prev",
-		bounds = {2, 3 + pageSize, screenW / 2 - 3, 1},
+		bounds = rect.new(2, 3 + pageSize, screenW / 2 - 3, 1),
 		click = function()
 			if page <= 1 then
 				return
@@ -295,7 +296,7 @@ local function pageShowRawDevice(devName)
 	}
 	gui.newButton{
 		text = "Next >",
-		bounds = {screenW / 2 + 3, 3 + pageSize, screenW / 2 - 3, 1},
+		bounds = rect.new(screenW / 2 + 3, 3 + pageSize, screenW / 2 - 3, 1),
 		click = function()
 			page = page + 1
 			updateList()
@@ -303,7 +304,7 @@ local function pageShowRawDevice(devName)
 	}
 	local pageLabel = gui.newLabel{
 		text = "1",
-		bounds = {screenW / 2 - 1, 3 + pageSize, 4, 1},
+		bounds = rect.new(screenW / 2 - 1, 3 + pageSize, 4, 1),
 		color = colors.yellow
 	}
 	gui.draw(screen)
