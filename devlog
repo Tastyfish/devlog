@@ -88,11 +88,20 @@ pageMainMenu = function()
 	}
 	gui.newButton{
 		text = "View Device Log",
-		bounds = rect.new(2, screenH / 2, screenW - 2, screenH / 4),
+		bounds = rect.new(2, screenH / 2, screenW - 2, 3),
 		color = colors.green,
 		highlight = colors.lime,
 		click = function()
 			pageListDevices()
+		end,
+	}
+	gui.newButton{
+		text = "Quit",
+		bounds = rect.new(2, screenH / 2 + 4, screenW - 2, 3),
+		color = colors.red,
+		highlight = colors.yellow,
+		click = function()
+			exit()
 		end,
 	}
 	gui.newButton{
@@ -163,7 +172,7 @@ pageAddDevice = function()
 		text = "Cancel",
 		color = colors.red,
 		highlight = colors.yellow,
-		bounds = rect.new(2, 8+numTypes, 5, 3),
+		bounds = rect.new(2, 8+numTypes, 8, 3),
 		click = function()
 			pageMainMenu()
 		end
