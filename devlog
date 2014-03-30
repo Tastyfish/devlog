@@ -104,7 +104,8 @@ pageMainMenu = function()
 			screen.setTextColor(colors.white)
 			screen.setBackgroundColor(colors.black)
 			screen.clear()
-			exit()
+			screen.setCursorPos(1, 1)
+			os.queueEvent("terminate")
 		end,
 	}
 	gui.newButton{
