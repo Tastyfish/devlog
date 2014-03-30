@@ -88,7 +88,7 @@ pageMainMenu = function()
 	}
 	gui.newButton{
 		text = "View Device Log",
-		bounds = rect.new(2, screenH / 2, screenW - 2, 3),
+		bounds = rect.new(2, screenH / 2+1, screenW - 2, 3),
 		color = colors.green,
 		highlight = colors.lime,
 		click = function()
@@ -97,7 +97,7 @@ pageMainMenu = function()
 	}
 	gui.newButton{
 		text = "Quit",
-		bounds = rect.new(2, screenH / 2 + 4, screenW - 2, 3),
+		bounds = rect.new(2, screenH / 2 + 5, screenW - 2, 3),
 		color = colors.red,
 		highlight = colors.yellow,
 		click = function()
@@ -187,11 +187,12 @@ pageListDevices = function()
 		color = colors.cyan,
 		bounds = rect.new(1, 1, screenW, 1),
 	}
-	local typeBox = gui.newListBox{
+	local typeBox, listBox
+	typeBox = gui.newListBox{
 		bounds = rect.new(2, 3, 8, screenH - 6),
 		items = {},
 		select = function()
-			local t = typeBox.items[typeBox.selectedItems]
+			local t = typeBox.items[typeBox.selectedItem]
 			listBox.items = queryDevByType(t):select("name")
 			listBox.selectedItem = 1
 			listBox.scrollItem = 1
@@ -201,7 +202,7 @@ pageListDevices = function()
 	for k,_ in pairs(getValueTab) do
 		table.insert(typeBox.items, k)
 	end
-	local listBox = gui.newListBox{
+	listBox = gui.newListBox{
 		bounds = rect.new(11, 3, screenW - 12, screenH - 4),
 		items = devDB:query():sortByAscending("name"):select("name"),
 		select = function()
