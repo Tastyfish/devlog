@@ -75,7 +75,10 @@ local function addDevice(name, tname, path)
 	}
 end
 
-local function pageMainMenu()
+-- screens
+local pageMainMenu, pageAddDevice, pageListDevices, pageShowDevice, pageShowRawDevice
+
+pageMainMenu = function()
 	gui.finishForm()
 	gui.newLabel{
 		text = "Industrial Device Logger",
@@ -103,7 +106,7 @@ local function pageMainMenu()
 	gui.draw(screen)
 end
 
-local function pageAddDevice()
+pageAddDevice = function()
 	gui.finishForm()
 	gui.newLabel{
 		text = "Add Device",
@@ -167,7 +170,7 @@ local function pageAddDevice()
 	gui.draw(screen)
 end
 
-local function pageListDevices()
+pageListDevices = function()
 	gui.finishForm()
 	gui.newLabel{
 		text = "Select Device"..(byType and " - "..byType or ""),
@@ -208,7 +211,7 @@ end
 
 local updateDeviceHandler = nil
 
-local function pageShowDevice(devName)
+pageShowDevice = function(devName)
 	local device = getDevice(devName)
 	
 	gui.finishForm()
@@ -253,7 +256,7 @@ local function pageShowDevice(devName)
 	end
 end
 
-local function pageShowRawDevice(devName)
+pageShowRawDevice = function(devName)
 	local device = getDevice(devName)
 	local page = 1
 	local pageSize = screenH - 4
