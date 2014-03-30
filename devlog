@@ -47,6 +47,7 @@ local getValueTab = {
 		return dev.getPowerLevel() / dev.getPowerMax()
 	end
 }
+local numTypes = 2
 
 local function logDeviceValue(dev)
 	local val = getValueTab[dev.type](dev)
@@ -126,35 +127,35 @@ pageAddDevice = function()
 		align = "far",
 		bounds = rect.new(2, 5, 12, 1)
 	}
-	local tbh = #getValueTab
 	local typeBox = gui.newListBox{
-		bounds = rect.new(15, 5, screenW - 15, #getValueTab)
+		bounds = rect.new(15, 5, screenW - 15, numTypes)
 	}
 	for k,v in pairs(getValueTab) do
-		table.insert(textBox.items, k)
+		table.insert(typeBox.items, k)
 	end
 	gui.newLabel{
 		text = "Path:",
 		align = "far",
-		bounds = rect.new(2, 6+tbh, 12, 1)
+		bounds = rect.new(2, 6+numTypes, 12, 1)
 	}
 	local pathBox = gui.newTextbox{
-		bounds = rect.new(15, 6+tbh, screenW - 15, 1)
+		bounds = rect.new(15, 6+numTypes, screenW - 15, 1)
 	}
 	gui.newButton{
 		text = "New",
 		color = colors.green,
 		highlight = colors.lime,
-		bounds = rect.new(screenW - 6, 8+tbh, 5, 3),
+		bounds = rect.new(screenW - 5, 8+numTypes, 5, 3),
 		click = function()
 			if nameBox.text ~= "" and pathBox.text ~= "" and typeBox.selectedItem > 0 then
 				addDevice(nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
+				pageMainMenu()
 			else
 				screen.clear()
 				print("Invalid input")
 				sleep(1)
 				screen.clear()
-				gui.draw()
+				gui.draw(screen)
 			end
 		end
 	}
@@ -162,7 +163,7 @@ pageAddDevice = function()
 		text = "Cancel",
 		color = colors.red,
 		highlight = colors.yellow,
-		bounds = rect.new(2, 8+tbh, 5, 3),
+		bounds = rect.new(2, 8+numTypes, 5, 3),
 		click = function()
 			pageMainMenu()
 		end
@@ -189,7 +190,7 @@ pageListDevices = function()
 		end,
 	}
 	for k,_ in pairs(getValueTab) do
-		table.insert(items, k)
+		table.insert(typeBox.items, k)
 	end
 	local listBox = gui.newListBox{
 		bounds = rect.new(11, 3, screenW - 12, screenH - 4),
