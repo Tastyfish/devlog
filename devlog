@@ -84,11 +84,11 @@ pageMainMenu = function()
 	gui.newLabel{
 		text = "Industrial Device Logger",
 		color = colors.cyan,
-		bounds = rect.new(1, 1, screenW, screenH / 2)
+		bounds = rect.new(2, 1, screenW, screenH / 2 - 2)
 	}
 	gui.newButton{
 		text = "View Device Log",
-		bounds = rect.new(2, screenH / 2+1, screenW - 2, 3),
+		bounds = rect.new(2, screenH / 2, screenW - 2, 3),
 		color = colors.green,
 		highlight = colors.lime,
 		click = function()
@@ -97,10 +97,12 @@ pageMainMenu = function()
 	}
 	gui.newButton{
 		text = "Quit",
-		bounds = rect.new(2, screenH / 2 + 5, screenW - 2, 3),
+		bounds = rect.new(2, screenH / 2 + 4, screenW - 2, 3),
 		color = colors.red,
 		highlight = colors.yellow,
 		click = function()
+			screen.setTextColor(colors.white)
+			screen.setBackgroundColor(colors.black)
 			screen.clear()
 			exit()
 		end,
