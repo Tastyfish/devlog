@@ -212,6 +212,7 @@ pageListDevices = function()
 		text = "Cancel",
 		color = colors.red,
 		highlight = colors.yellow,
+		bounds = rect.new(2, screenH - 3, 8, 3),
 		click = function()
 			pageMainMenu()
 		end
