@@ -22,8 +22,9 @@ function _graph:draw(screen, highlight)
 		local y = self.bounds.y + (1-self.cache[i]) * (self.bounds.height - 1)
 		
 		gui.setPixel(screen, x, y, self.color)
-		local frect = rect{x, y + 1, self.bounds.y + self.bounds.height - y, 1}
-		frect:fill(screen, colors.fill)
+		local frect = rect.new(x, y + 1, 1,
+			self.bounds.y + self.bounds.height - y)
+		frect:fill(screen, colors.yellow)
 	end
 end
 
