@@ -43,10 +43,12 @@ end
 
 local getValueTab = {
 	tank = function(periph)
-		return periph.getLiquidLevel() / periph.getLiquidMax()
+		local t = d.getTankInfo("unknown")[1]
+		return t.amount / t.capacity
 	end,
 	power = function(periph)
-		return periph.getPowerLevel() / periph.getPowerMax()
+		local t = d.getPowerInfo("unknown")[1]
+		return t.amount / t.capacity
 	end
 }
 local numTypes = 2
