@@ -1,8 +1,15 @@
-io.write("Name? ")
-local name = io.read()
+local args = {...}
+local name = args[1]
+
+if not name then
+	io.write("Name? ")
+	name = io.read()
+end
+
 local dev = peripheral.wrap(name)
+
 if not dev then
-	error(dev.." not found")
+	error("device not found")
 end
 
 for k,v in pairs(dev) do
