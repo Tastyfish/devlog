@@ -43,18 +43,23 @@ end
 
 local getValueTab = {
 	tank = function(periph)
-		local t = d.getTankInfo("unknown")[1]
+		local t = periph.getTankInfo("unknown")[1]
 		return t.amount / t.capacity
 	end,
 	power = function(periph)
-		local t = d.getPowerInfo("unknown")[1]
+		local t = periph.getPowerInfo("unknown")[1]
 		return t.amount / t.capacity
 	end
 }
 local numTypes = 2
 
 local function logDeviceValue(dev, periph)
-	local val = getValueTab[dev.type](periph)
+	local pass, val = pcall(getValueTab[dev.type], periph)
+	-- silently fail with flatline if bad device
+	if not pass then
+		val = 0
+	end
+	
 	logDB:insert{
 		name = dev.name,
 		date = os.time(),
