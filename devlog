@@ -8,7 +8,7 @@ os.loadAPI "/devlog/graph"
 
 local logDB = fs.exists("/devlog.log.db") and
 	db.open("/devlog.log.db") or
-	db.create("/devlog.log.db", {name="string", data="date", value="number"})
+	db.create("/devlog.log.db", {name="string", date="date", value="number"})
 local devDB = fs.exists("/devlog.dev.db") and
 	db.open("/devlog.dev.db") or
 	db.create("/devlog.dev.db", {name="string", type="string", path="string"})
@@ -43,21 +43,26 @@ end
 
 local getValueTab = {
 	tank = function(periph)
-		local t = d.getTankInfo("unknown")[1]
+		local t = periph.getTankInfo("unknown")[1]
 		return t.amount / t.capacity
 	end,
 	power = function(periph)
-		local t = d.getPowerInfo("unknown")[1]
+		local t = periph.getPowerInfo("unknown")[1]
 		return t.amount / t.capacity
 	end
 }
 local numTypes = 2
 
 local function logDeviceValue(dev, periph)
-	local val = getValueTab[dev.type](periph)
+	local pass, val = pcall(getValueTab[dev.type], periph)
+	-- silently fail with flatline if bad device
+	if not pass then
+		val = 0
+	end
+	
 	logDB:insert{
 		name = dev.name,
-		date = os.time(),
+		date = os.day() * 24 + os.time(),
 		value = val
 	}
 	if updateDeviceHandler then
