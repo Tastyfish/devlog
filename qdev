@@ -12,11 +12,30 @@ if not dev then
 	error("device not found")
 end
 
+function printTable(t) do
+	if #t > 0 then
+		for i,v in ipairs(t) do
+			print(" "..tostring(i).." = "..tostring(v))
+		end
+	else
+		for k,v in pairs(t) do
+			print(" "..tostring(k).." = "..tostring(v))
+		end
+	end
+end
+
 for k,v in pairs(dev) do
 	if k:match("^get.*") then
-		v = pcall(function() return dev[k]() end)
-		if not v then v = "?" end
-		print(k.." = "..v)
+		local pass
+		pass, v = pcall(function() return dev[k]() end)
+		if not pass then v = "?" end
+		if type(v) == "table" then
+			print(tostring(k).." = {")
+			printTable(v)
+			print("}")
+		else
+			print(tostring(k).." = "..tostring(v))
+		end
 	else
 		print(k)
 	end
