@@ -38,7 +38,7 @@ local function queryDevByType(name)
 end
 
 local function getDevice(name)
-	return devDB:query():where("$name = ?", name):selectFirst()
+	return devDB:query():where("$name == ?", name):selectFirst()
 end
 
 local getValueTab = {
@@ -86,7 +86,7 @@ pageMainMenu = function()
 	gui.newLabel{
 		text = "Industrial Device Logger",
 		color = colors.cyan,
-		bounds = rect.new(1, 1, screenW, screenH / 2)
+		bounds = rect.new(1, 1, screenW, screenH / 2 - 1)
 	}
 	gui.newButton{
 		text = "View Device Log",
@@ -210,7 +210,7 @@ pageListDevices = function()
 		bounds = rect.new(11, 3, screenW - 11, screenH - 3),
 		items = devDB:query():sortByAscending("name"):select("name"),
 		select = function()
-			local devName = typeBox.items[typeBox.selectedItem]
+			local devName = listBox.items[listBox.selectedItem]
 			if devName then
 				pageShowDevice(devName)
 			end
