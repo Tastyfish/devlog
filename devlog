@@ -19,7 +19,7 @@ screenW = math.floor(screenW / 2) * 2
 screenH = math.floor(screenH / 2) * 2
 local timerInterval = 2 * 60 -- 2 minutes
 
-local updateTimer = os.startTimer(timerInterval)
+local updateTimer = nil
 
 local function queryLogByName(name, count, skip)
 	local q = logDB:query():where("$name == ?", name):sortByDescending("date")
@@ -254,7 +254,7 @@ pageShowDevice = function(devName)
 		color = colors.yellow,
 		fill = colors.green
 	}
-	for val in queryLogByName(device.name, screenW):sortByAscending("date") do
+	for val in queryLogByName(device.name, screenW):sortByAscending("date"):iterate() do
 		valG:addValue(val)
 	end
 	gui.newButton{
@@ -298,6 +298,7 @@ pageShowRawDevice = function(devName)
 	local listBox = gui.newListBox{
 		bounds = rect.new(2, 3, screenW - 2, pageSize)
 	}
+	local pageLabel
 	local function updateList()
 		pageLabel.text = tostring(page)
 		pageLabel:draw(screen)
@@ -324,7 +325,7 @@ pageShowRawDevice = function(devName)
 			updateList()
 		end
 	}
-	local pageLabel = gui.newLabel{
+	pageLabel = gui.newLabel{
 		text = "1",
 		bounds = rect.new(screenW / 2 - 1, 3 + pageSize, 4, 1),
 		color = colors.yellow
@@ -332,8 +333,14 @@ pageShowRawDevice = function(devName)
 	gui.draw(screen)
 end
 
+local function updateTick()
+	logAllDevices()
+	updateTimer = os.startTimer(timerInterval)
+end
+
 -- main program loop
 pageMainMenu()
+updateTick()
 while true do
 	local event, p1, p2, p3, p4 = os.pullEvent()
 	if event == "mouse_click" then
