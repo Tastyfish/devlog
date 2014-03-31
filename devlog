@@ -310,7 +310,7 @@ pageShowRawDevice = function(devName)
 	local function updateList()
 		pageLabel.text = tostring(page)
 		pageLabel:draw(screen)
-		listBox.items = queryLogByName(devName, screenH - 4, page * pageSize - 1)
+		listBox.items = queryLogByName(devName, pageSize, (page - 1) * pageSize)
 		listBox:draw(screen)
 	end
 	gui.newButton{
