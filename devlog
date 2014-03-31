@@ -262,8 +262,8 @@ pageShowDevice = function(devName)
 		color = colors.yellow,
 		fill = colors.green
 	}
-	for val in queryLogByName(device.name, screenW):sortByAscending("date"):iterate() do
-		valG:addValue(val.value)
+	for e in queryLogByName(device.name, screenW):sortByAscending("date"):iterate() do
+		valG:addValue(e.value.value)
 	end
 	gui.newButton{
 		text = "View Raw Data",
@@ -277,7 +277,7 @@ pageShowDevice = function(devName)
 	
 	updateDeviceHandler = function(devname, val)
 		if device.name == devname then
-			valG:addValue(val.value)
+			valG:addValue(val)
 			valG:draw(screen)
 		end
 	end
