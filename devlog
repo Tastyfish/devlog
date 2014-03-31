@@ -231,7 +231,7 @@ end
 local updateDeviceHandler = nil
 
 pageShowDevice = function(devName)
-	local device = getDevice(devName)
+	local device = getDevice(devName):values()
 	
 	gui.finishForm()
 	gui.newLabel{
@@ -276,7 +276,7 @@ pageShowDevice = function(devName)
 end
 
 pageShowRawDevice = function(devName)
-	local device = getDevice(devName)
+	local device = getDevice(devName):values()
 	local page = 1
 	local pageSize = screenH - 4
 	
