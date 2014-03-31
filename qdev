@@ -1,0 +1,14 @@
+io.write("Name? ")
+local name = io.read()
+local dev = peripheral.wrap(name)
+if not dev then
+	error(dev.." not found")
+end
+
+for k,v in pairs(dev) do
+	if k:match("^get.*") then
+		print(k.." = "..dev[k]())
+	else
+		print(k)
+	end
+end
