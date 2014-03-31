@@ -42,17 +42,17 @@ local function getDevice(name)
 end
 
 local getValueTab = {
-	tank = function(dev)
-		return dev.getLiquidLevel() / dev.getLiquidMax()
+	tank = function(periph)
+		return periph.getLiquidLevel() / periph.getLiquidMax()
 	end,
-	power = function(dev)
-		return dev.getPowerLevel() / dev.getPowerMax()
+	power = function(periph)
+		return periph.getPowerLevel() / periph.getPowerMax()
 	end
 }
 local numTypes = 2
 
-local function logDeviceValue(dev)
-	local val = getValueTab[dev.type](dev)
+local function logDeviceValue(dev, periph)
+	local val = getValueTab[dev.type](periph)
 	logDB:insert{
 		name = dev.name,
 		date = os.time(),
@@ -65,8 +65,9 @@ end
 
 local function logAllDevices()
 	for d in devDB:query():iterate() do
-		local dev = peripheral.wrap(d.path)
-		logDeviceValue(dev)
+		local periph = peripheral.wrap(d.path.value)
+		d = {name = d.name.value, type = d.type.value}
+		logDeviceValue(d, periph)
 	end
 end
 
