@@ -28,6 +28,10 @@ function _graph:draw(screen, highlight)
 end
 
 function _graph:addValue(value)
+	if type(value) ~= "number" then
+		error("Invalid value added: "..tostring(value), 2)
+	end
+	
 	table.insert(self.cache, 1, value)
 	if #self.cache > self.bounds.width then
 		table.remove(self.cache)
