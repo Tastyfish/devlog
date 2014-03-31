@@ -14,7 +14,9 @@ end
 
 for k,v in pairs(dev) do
 	if k:match("^get.*") then
-		print(k.." = "..dev[k]())
+		v = pcall(function() return dev[k]() end)
+		if not v then v = "?" end
+		print(k.." = "..v)
 	else
 		print(k)
 	end
