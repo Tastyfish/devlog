@@ -275,8 +275,8 @@ pageShowDevice = function(devName)
 	}
 	gui.draw(screen)
 	
-	updateDeviceHandler = function(devname, val)
-		if device.name == devname then
+	updateDeviceHandler = function(dname, val)
+		if devName == dname then
 			valG:addValue(val)
 			valG:draw(screen)
 		end
