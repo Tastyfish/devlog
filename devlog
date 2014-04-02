@@ -6,19 +6,17 @@ os.loadAPI "/extlib/gui"
 os.loadAPI "/extlib/db"
 os.loadAPI "/devlog/graph"
 
-local logDB = fs.exists("/devlog.log.db") and
-	db.open("/devlog.log.db") or
-	db.create("/devlog.log.db", {name="string", date="date", value="number"})
-local devDB = fs.exists("/devlog.dev.db") and
-	db.open("/devlog.dev.db") or
-	db.create("/devlog.dev.db", {name="string", type="string", path="string"})
+local logDB = db.openOrCreate("/devlog.log.db", {name="string", date="date", value="number"})
+local devDB = db.openOrCreate("/devlog.dev.db", {name="string", type="string", path="string"})
 local modem = dev.get("modem")
+local numTypes, getValueTab = dofile("/devlog/types")
+
 local screen = term
 local screenW, screenH = screen.getSize()
 screenW = math.floor(screenW / 2) * 2
 screenH = math.floor(screenH / 2) * 2
-local timerInterval = 2 * 60 -- 2 minutes
 
+local timerInterval = 2 * 60 -- 2 minutes
 local updateTimer = nil
 
 local function queryLogByName(name, count, skip)
@@ -41,29 +39,27 @@ local function getDevice(name)
 	return devDB:query():where("$name == ?", name):selectFirst()
 end
 
-local getValueTab = {
-	tank = function(periph)
-		local t = periph.getTankInfo("unknown")[1]
-		return t.amount / t.capacity
-	end,
-	power = function(periph)
-		local t = periph.getPowerInfo("unknown")[1]
-		return t.amount / t.capacity
+local function logDeviceValue(dev, periphs)
+	local total = 0, totalCap = 0
+	
+	for i,periph in ipairs(periphs) do
+		local pass, val, cap = pcall(getValueTab[dev.type], periph)
+		-- silently don't include if bad device
+		if pass then
+			total = total + val
+			totalCap = totalCap + cap
+		end
 	end
-}
-local numTypes = 2
-
-local function logDeviceValue(dev, periph)
-	local pass, val = pcall(getValueTab[dev.type], periph)
-	-- silently fail with flatline if bad device
-	if not pass then
-		val = 0
+	
+	-- div0 prevention
+	if totalCap == 0 then
+		totalCap = 1
 	end
 	
 	logDB:insert{
 		name = dev.name,
 		date = os.day() * 24 + os.time(),
-		value = val
+		value = total / totalCap
 	}
 	if updateDeviceHandler then
 		updateDeviceHandler(dev.name, val)
@@ -72,9 +68,12 @@ end
 
 local function logAllDevices()
 	for d in devDB:query():iterate() do
-		local periph = peripheral.wrap(d.path.value)
+		local periphs = {}
+		for d in d.path.value:gmatch("[^,]+") do
+			table.insert(periphs, peripheral.wrap(d.path.value))
+		end
 		d = {name = d.name.value, type = d.type.value}
-		logDeviceValue(d, periph)
+		logDeviceValue(d, periphs)
 	end
 end
 

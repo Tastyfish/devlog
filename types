@@ -1,0 +1,10 @@
+return 2, {
+	tank = function(periph)
+		local t = periph.getTankInfo("unknown")[1]
+		return t.amount, t.capacity
+	end,
+	power = function(periph)
+		local t = periph.getPowerInfo("unknown")[1]
+		return t.getEUStored(), t.getEUCapacity()
+	end,
+}
