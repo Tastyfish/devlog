@@ -172,18 +172,26 @@ pageAddDevice = function(oldDev)
 	local pathBox = gui.newTextbox{
 		bounds = rect.new(15, 6+numTypes, screenW - 15, 1)
 	}
+	local pathBox2 = gui.newTextbox{
+		bounds = rect.new(15, 7+numTypes, screenW - 15, 1)
+	}
+	local pathBox3 = gui.newTextbox{
+		bounds = rect.new(15, 8+numTypes, screenW - 15, 1)
+	}
 	gui.newButton{
 		text = oldDev and "Fix" or "New",
 		color = colors.green,
 		highlight = colors.lime,
-		bounds = rect.new(screenW - 5, 8+numTypes, 5, 3),
+		bounds = rect.new(screenW - 5, 9+numTypes, 5, 3),
 		click = function()
 			if nameBox.text ~= "" and pathBox.text ~= "" and typeBox.selectedItem > 0 then
 				if oldDev then
 					updateDevice(tostring(oldDev.name), 
-						nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
+						nameBox.text, typeBox.items[typeBox.selectedItem],
+						pathBox.text..pathBox2.text..pathBox3.text)
 				else
-					addDevice(nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
+					addDevice(nameBox.text, typeBox.items[typeBox.selectedItem],
+						pathBox.text..pathBox2.text..pathBox3.text)
 				end
 				pageMainMenu()
 			else
@@ -199,14 +207,17 @@ pageAddDevice = function(oldDev)
 		text = "Cancel",
 		color = colors.red,
 		highlight = colors.yellow,
-		bounds = rect.new(2, 8+numTypes, 8, 3),
+		bounds = rect.new(2, 9+numTypes, 8, 3),
 		click = function()
 			pageMainMenu()
 		end
 	}
 	if oldDev then
 		nameBox.text = tostring(oldDev.name)
-		pathBox.text = tostring(oldDev.path)
+		local path = tostring(oldDev.path)
+		pathBox.text = path:sub(1, pathBox.bounds.width - 1)
+		pathBox2.text = path:sub(pathBox.bounds.width, 2 * pathBox.bounds.width - 2)
+		pathBox3.text = path:sub(2 * pathBox.bounds.width - 1, 3 * pathBox.bounds.width - 3)
 		for i,t in ipairs(typeBox.items) do
 			if t == tostring(oldDev.type) then
 				typeBox.selectedItem = i
