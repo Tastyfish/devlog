@@ -40,7 +40,8 @@ local function getDevice(name)
 end
 
 local function logDeviceValue(dev, periphs)
-	local total = 0, totalCap = 0
+	local total = 0
+	local totalCap = 0
 	
 	for i,periph in ipairs(periphs) do
 		local pass, val, cap = pcall(getValueTab[dev.type], periph)
@@ -69,8 +70,8 @@ end
 local function logAllDevices()
 	for d in devDB:query():iterate() do
 		local periphs = {}
-		for d in d.path.value:gmatch("[^,]+") do
-			table.insert(periphs, peripheral.wrap(d.path.value))
+		for periph in d.path.value:gmatch("[^,]+") do
+			table.insert(periphs, peripheral.wrap(periph))
 		end
 		d = {name = d.name.value, type = d.type.value}
 		logDeviceValue(d, periphs)
