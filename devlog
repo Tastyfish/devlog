@@ -317,7 +317,7 @@ pageShowRawDevice = function(devName)
 	gui.newLabel{
 		text = "View Device - "..device.name.." [ "..device.type.." ]",
 		color = colors.cyan,
-		bounds = rect.new(1, 1, screenW - 3, 1),
+		bounds = rect.new(1, 1, screenW - 7, 1),
 	}
 	gui.newButton{
 		text = "X",
