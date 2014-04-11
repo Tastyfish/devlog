@@ -215,9 +215,9 @@ pageAddDevice = function(oldDev)
 	if oldDev then
 		nameBox.text = tostring(oldDev.name)
 		local path = tostring(oldDev.path)
-		pathBox.text = path:sub(1, pathBox.bounds.width - 5)
-		pathBox2.text = path:sub(pathBox.bounds.width - 4, 2 * pathBox.bounds.width - 10)
-		pathBox3.text = path:sub(2 * pathBox.bounds.width - 9, 3 * pathBox.bounds.width - 15)
+		pathBox.text = path:sub(1, pathBox.bounds.width - 4)
+		pathBox2.text = path:sub(pathBox.bounds.width - 3, 2 * pathBox.bounds.width - 8)
+		pathBox3.text = path:sub(2 * pathBox.bounds.width - 7, 3 * pathBox.bounds.width - 12)
 		for i,t in ipairs(typeBox.items) do
 			if t == tostring(oldDev.type) then
 				typeBox.selectedItem = i
