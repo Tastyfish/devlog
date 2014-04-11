@@ -184,6 +184,7 @@ pageAddDevice = function(oldDev)
 						nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
 				else
 					addDevice(nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
+				end
 				pageMainMenu()
 			else
 				screen.clear()
