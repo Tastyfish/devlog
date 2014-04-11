@@ -86,6 +86,15 @@ local function addDevice(name, tname, path)
 	}
 end
 
+local function updateDevice(oldName, name, tname, path)
+	devDB:query():where("$name == ?", oldName):update{
+		name = name,
+		type = tname,
+		path = path
+	}
+	logDB:query():where("$name == ?", oldName):update{name = name}
+end
+
 -- screens
 local pageMainMenu, pageAddDevice, pageListDevices, pageShowDevice, pageShowRawDevice
 
@@ -128,10 +137,11 @@ pageMainMenu = function()
 	gui.draw(screen)
 end
 
-pageAddDevice = function()
+-- add OR edit device
+pageAddDevice = function(oldDev)
 	gui.finishForm()
 	gui.newLabel{
-		text = "Add Device",
+		text = oldDev and ("Edit "..oldDev.name) or "Add Device",
 		color = colors.cyan,
 		bounds = rect.new(1, 1, screenW, 1),
 	}
@@ -163,13 +173,17 @@ pageAddDevice = function()
 		bounds = rect.new(15, 6+numTypes, screenW - 15, 1)
 	}
 	gui.newButton{
-		text = "New",
+		text = oldDev and "Fix" or "New",
 		color = colors.green,
 		highlight = colors.lime,
 		bounds = rect.new(screenW - 5, 8+numTypes, 5, 3),
 		click = function()
 			if nameBox.text ~= "" and pathBox.text ~= "" and typeBox.selectedItem > 0 then
-				addDevice(nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
+				if oldDev then
+					updateDevice(tostring(oldDev.name), 
+						nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
+				else
+					addDevice(nameBox.text, typeBox.items[typeBox.selectedItem], pathBox.text)
 				pageMainMenu()
 			else
 				screen.clear()
@@ -189,6 +203,16 @@ pageAddDevice = function()
 			pageMainMenu()
 		end
 	}
+	if oldDev then
+		nameBox.text = tostring(oldDev.name)
+		pathBox.text = tostring(oldDev.path)
+		for i,t in ipairs(typeBox.items) do
+			if t == tostring(oldDev.type) then
+				typeBox.selectedItem = i
+				break
+			end
+		end
+	end
 	gui.draw(screen)
 end
 
@@ -251,7 +275,7 @@ pageShowDevice = function(devName)
 		text = "X",
 		bounds = rect.new(screenW - 2, 1, 3, 1),
 		color = colors.red,
-		color = colors.yellow,
+		highlight = colors.yellow,
 		click = function()
 			updateDeviceHandler = nil
 			pageListDevices()
@@ -298,9 +322,16 @@ pageShowRawDevice = function(devName)
 		text = "X",
 		bounds = rect.new(screenW - 2, 1, 3, 1),
 		color = colors.red,
-		color = colors.yellow,
+		highlight = colors.yellow,
 		click = function()
 			pageShowDevice(devName)
+		end,
+	}
+	gui.newButton{
+		text = "+",
+		bounds = rect.new(screenW - 6, 1, 3, 1),
+		click = function()
+			pageAddDevice(device)
 		end,
 	}
 	local listBox = gui.newListBox{
