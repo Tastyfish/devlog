@@ -51,7 +51,8 @@ local function logDeviceValue(dev, periphs)
 	for i,periph in ipairs(periphs) do
 		local pass, val, cap = pcall(getValueTab[dev.type], periph)
 		-- silently don't include if bad device
-		if pass then
+		if pass and cap then
+			val = val or 0
 			total = total + val
 			totalCap = totalCap + cap
 		end
