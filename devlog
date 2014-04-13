@@ -11,6 +11,7 @@ local devDB = db.openOrCreate("/devlog.dev.db", {name="string", type="string", p
 local modem = dev.get("modem")
 local numTypes, getValueTab = dofile("/devlog/types")
 
+local keepXEntries = 1024
 local screen = term
 local screenW, screenH = screen.getSize()
 screenW = math.floor(screenW / 2) * 2
@@ -37,6 +38,10 @@ end
 
 local function getDevice(name)
 	return devDB:query():where("$name == ?", name):selectFirst()
+end
+
+local function keepOnlyXLogs()
+	logDB:query():sortByDescending("date"):take(keepXEntries):delete()
 end
 
 local function logDeviceValue(dev, periphs)
@@ -385,11 +390,13 @@ pageShowRawDevice = function(devName)
 end
 
 local function updateTick()
+	keepOnlyXLogs()
 	logAllDevices()
 	updateTimer = os.startTimer(timerInterval)
 end
 
 -- main program loop
+keepOnlyXLogs()
 pageMainMenu()
 updateTick()
 while true do
