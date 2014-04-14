@@ -41,7 +41,7 @@ local function getDevice(name)
 end
 
 local function keepOnlyXLogs()
-	logDB:query():sortByDescending("date"):take(keepXEntries):delete()
+	logDB:query():sortByDescending("date"):skip(keepXEntries):delete()
 end
 
 local function logDeviceValue(dev, periphs)
