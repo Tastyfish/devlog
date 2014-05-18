@@ -21,7 +21,7 @@ local timerInterval = 2 * 60 -- 2 minutes
 local updateTimer = nil
 
 local function queryLogByName(name, count, skip)
-	local q = logDB:query():where("$name == ?", name):sortByDescending("date")
+	local q = logDB("$name == ?", name):sortByDescending("date")
 	if skip then
 		q:skip(skip)
 	end
@@ -32,16 +32,16 @@ local function queryLogByName(name, count, skip)
 end
 
 local function queryDevByType(name)
-	local q = devDB:query():where("$type == ?", name):sortByAscending("name")
+	local q = devDB("$type == ?", name):sortByAscending("name")
 	return q
 end
 
 local function getDevice(name)
-	return devDB:query():where("$name == ?", name):selectFirst()
+	return devDB("$name == ?", name):selectFirst()
 end
 
 local function keepOnlyXLogs()
-	logDB:query():sortByDescending("date"):skip(keepXEntries):delete()
+	logDB():sortByDescending("date"):skip(keepXEntries):delete()
 end
 
 local function logDeviceValue(dev, periphs)
@@ -74,7 +74,7 @@ local function logDeviceValue(dev, periphs)
 end
 
 local function logAllDevices()
-	for d in devDB:query():iterate() do
+	for d in devDB():iterate() do
 		local periphs = {}
 		for periph in d.path.value:gmatch("[^,]+") do
 			table.insert(periphs, peripheral.wrap(periph))
@@ -93,12 +93,12 @@ local function addDevice(name, tname, path)
 end
 
 local function updateDevice(oldName, name, tname, path)
-	devDB:query():where("$name == ?", oldName):update{
+	devDB("$name == ?", oldName):update {
 		name = name,
 		type = tname,
 		path = path
 	}
-	logDB:query():where("$name == ?", oldName):update{name = name}
+	logDB("$name == ?", oldName):update {name = name}
 end
 
 -- screens
@@ -106,12 +106,12 @@ local pageMainMenu, pageAddDevice, pageListDevices, pageShowDevice, pageShowRawD
 
 pageMainMenu = function()
 	gui.finishForm()
-	gui.newLabel{
+	gui.newLabel {
 		text = "Industrial Device Logger",
 		color = colors.cyan,
 		bounds = rect.new(1, 1, screenW, screenH / 2 - 1)
 	}
-	gui.newButton{
+	gui.newButton {
 		text = "View Device Log",
 		bounds = rect.new(2, screenH / 2, screenW - 2, 3),
 		color = colors.green,
@@ -120,7 +120,7 @@ pageMainMenu = function()
 			pageListDevices()
 		end,
 	}
-	gui.newButton{
+	gui.newButton {
 		text = "Quit",
 		bounds = rect.new(2, screenH / 2 + 4, screenW - 2, 3),
 		color = colors.red,
@@ -130,10 +130,10 @@ pageMainMenu = function()
 			screen.setBackgroundColor(colors.black)
 			screen.clear()
 			screen.setCursorPos(1, 1)
-			os.queueEvent("terminate")
+			gui.stop()
 		end,
 	}
-	gui.newButton{
+	gui.newButton {
 		text = "+",
 		bounds = rect.new(2, screenH - 1, 3, 1),
 		click = function()
@@ -146,45 +146,45 @@ end
 -- add OR edit device
 pageAddDevice = function(oldDev)
 	gui.finishForm()
-	gui.newLabel{
+	gui.newLabel {
 		text = oldDev and ("Edit "..oldDev.name) or "Add Device",
 		color = colors.cyan,
 		bounds = rect.new(1, 1, screenW, 1),
 	}
-	gui.newLabel{
+	gui.newLabel {
 		text = "Name:",
 		align = "far",
 		bounds = rect.new(2, 3, 12, 1)
 	}
-	local nameBox = gui.newTextbox{
+	local nameBox = gui.newTextbox {
 		bounds = rect.new(15, 3, screenW - 15, 1)
 	}
-	gui.newLabel{
+	gui.newLabel {
 		text = "Type:",
 		align = "far",
 		bounds = rect.new(2, 5, 12, 1)
 	}
-	local typeBox = gui.newListBox{
+	local typeBox = gui.newListBox {
 		bounds = rect.new(15, 5, screenW - 15, numTypes)
 	}
 	for k,v in pairs(getValueTab) do
 		table.insert(typeBox.items, k)
 	end
-	gui.newLabel{
+	gui.newLabel {
 		text = "Path:",
 		align = "far",
 		bounds = rect.new(2, 6+numTypes, 12, 1)
 	}
-	local pathBox = gui.newTextbox{
+	local pathBox = gui.newTextbox {
 		bounds = rect.new(15, 6+numTypes, screenW - 15, 1)
 	}
-	local pathBox2 = gui.newTextbox{
+	local pathBox2 = gui.newTextbox {
 		bounds = rect.new(15, 7+numTypes, screenW - 15, 1)
 	}
-	local pathBox3 = gui.newTextbox{
+	local pathBox3 = gui.newTextbox {
 		bounds = rect.new(15, 8+numTypes, screenW - 15, 1)
 	}
-	gui.newButton{
+	gui.newButton {
 		text = oldDev and "Fix" or "New",
 		color = colors.green,
 		highlight = colors.lime,
@@ -204,12 +204,11 @@ pageAddDevice = function(oldDev)
 				screen.clear()
 				print("Invalid input")
 				sleep(1)
-				screen.clear()
 				gui.draw(screen)
 			end
 		end
 	}
-	gui.newButton{
+	gui.newButton {
 		text = "Cancel",
 		color = colors.red,
 		highlight = colors.yellow,
@@ -236,13 +235,13 @@ end
 
 pageListDevices = function()
 	gui.finishForm()
-	gui.newLabel{
+	gui.newLabel {
 		text = "Select Device"..(byType and " - "..byType or ""),
 		color = colors.cyan,
 		bounds = rect.new(1, 1, screenW, 1),
 	}
 	local typeBox, listBox
-	typeBox = gui.newListBox{
+	typeBox = gui.newListBox {
 		bounds = rect.new(2, 3, 8, screenH - 7),
 		items = {},
 		select = function()
@@ -256,9 +255,9 @@ pageListDevices = function()
 	for k,_ in pairs(getValueTab) do
 		table.insert(typeBox.items, k)
 	end
-	listBox = gui.newListBox{
+	listBox = gui.newListBox {
 		bounds = rect.new(11, 3, screenW - 11, screenH - 3),
-		items = devDB:query():sortByAscending("name"):select("name"),
+		items = devDB():sortByAscending("name"):select("name"),
 		select = function()
 			local devName = listBox.items[listBox.selectedItem]
 			if devName then
@@ -266,7 +265,7 @@ pageListDevices = function()
 			end
 		end,
 	}
-	gui.newButton{
+	gui.newButton {
 		text = "Cancel",
 		color = colors.red,
 		highlight = colors.yellow,
@@ -284,12 +283,12 @@ pageShowDevice = function(devName)
 	local device = getDevice(devName):values()
 	
 	gui.finishForm()
-	gui.newLabel{
+	gui.newLabel {
 		text = "View Device - "..device.name.." [ "..device.type.." ]",
 		color = colors.cyan,
 		bounds = rect.new(1, 1, screenW - 3, 1),
 	}
-	gui.newButton{
+	gui.newButton {
 		text = "X",
 		bounds = rect.new(screenW - 2, 1, 3, 1),
 		color = colors.red,
@@ -299,7 +298,7 @@ pageShowDevice = function(devName)
 			pageListDevices()
 		end,
 	}
-	local valG = graph.newGraph{
+	local valG = graph.newGraph {
 		bounds = rect.new(1, 3, screenW, screenH - 4),
 		color = colors.yellow,
 		fill = colors.green
@@ -307,7 +306,7 @@ pageShowDevice = function(devName)
 	for e in queryLogByName(device.name, screenW):sortByAscending("date"):iterate() do
 		valG:addValue(e.value.value)
 	end
-	gui.newButton{
+	gui.newButton {
 		text = "View Raw Data",
 		bounds = rect.new(1, screenH, screenW, 1),
 		click = function()
@@ -331,12 +330,12 @@ pageShowRawDevice = function(devName)
 	local pageSize = screenH - 4
 	
 	gui.finishForm()
-	gui.newLabel{
+	gui.newLabel {
 		text = "View Device - "..device.name.." [ "..device.type.." ]",
 		color = colors.cyan,
 		bounds = rect.new(1, 1, screenW - 7, 1),
 	}
-	gui.newButton{
+	gui.newButton {
 		text = "X",
 		bounds = rect.new(screenW - 2, 1, 3, 1),
 		color = colors.red,
@@ -345,14 +344,14 @@ pageShowRawDevice = function(devName)
 			pageShowDevice(devName)
 		end,
 	}
-	gui.newButton{
+	gui.newButton {
 		text = "+",
 		bounds = rect.new(screenW - 6, 1, 3, 1),
 		click = function()
 			pageAddDevice(device)
 		end,
 	}
-	local listBox = gui.newListBox{
+	local listBox = gui.newListBox {
 		bounds = rect.new(2, 3, screenW - 2, pageSize)
 	}
 	local pageLabel
@@ -362,7 +361,7 @@ pageShowRawDevice = function(devName)
 		listBox.items = queryLogByName(devName, pageSize, (page - 1) * pageSize):select("date", "value"):values()
 		listBox:draw(screen)
 	end
-	gui.newButton{
+	gui.newButton {
 		text = "< Prev",
 		bounds = rect.new(2, 3 + pageSize, screenW / 2 - 3, 1),
 		click = function()
@@ -373,7 +372,7 @@ pageShowRawDevice = function(devName)
 			updateList()
 		end
 	}
-	gui.newButton{
+	gui.newButton {
 		text = "Next >",
 		bounds = rect.new(screenW / 2 + 3, 3 + pageSize, screenW / 2 - 3, 1),
 		click = function()
@@ -381,7 +380,7 @@ pageShowRawDevice = function(devName)
 			updateList()
 		end
 	}
-	pageLabel = gui.newLabel{
+	pageLabel = gui.newLabel {
 		text = "1",
 		bounds = rect.new(screenW / 2 - 1, 3 + pageSize, 4, 1),
 		color = colors.yellow
@@ -397,23 +396,12 @@ local function updateTick()
 end
 
 -- main program loop
-keepOnlyXLogs()
-pageMainMenu()
 updateTick()
-while true do
-	local event, p1, p2, p3, p4 = os.pullEvent()
-	if event == "mouse_click" then
-		gui.click(screen, p2, p3)
-	elseif event == "mouse_drag" then
-		gui.drag(screen, p2, p3)
-	elseif event == "char" then
-		gui.keypress(screen, p1, true)
-	elseif event == "key" then
-		gui.keypress(screen, p1, false)
-	elseif event == "timer" then
-		if p1 == updateTimer then
-			logAllDevices()
-			updateTimer = os.startTimer(timerInterval)
+pageMainMenu()
+gui.run(screen, {
+	timer = function(id)
+		if id == updateTimer then
+			updateTick()
 		end
 	end
-end
+})
