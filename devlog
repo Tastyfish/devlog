@@ -98,7 +98,6 @@ local function updateDevice(oldName, name, tname, path)
 		type = tname,
 		path = path
 	}
-	logDB("$name == ?", oldName):update {name = name}
 end
 
 local function deleteDevice(name)
@@ -140,6 +139,13 @@ addDevicePage = cxt:newForm {
 					break
 				end
 			end
+		else
+			self.widgets.titleBar.text = "Add Device"
+			self.widgets.newBtn.text = "New"
+			self.widgets.nameBox.text = ""
+			self.widgets.pathBox.text = ""
+			self.widgets.pathBox2.text = ""
+			self.widgets.pathBox3.text = ""
 		end
 	end,
 	widgets = {
@@ -235,6 +241,7 @@ listDevicesPage = cxt:newForm {
 			text = "+",
 			bounds = rect.new(1, 1, 3, 1),
 			click = function()
+				addDevicePage.oldDev = nil
 				addDevicePage:show()
 			end
 		},
