@@ -5,7 +5,7 @@ local _graph = {}
 _graph.__index = _graph
 
 function newGraph(o)
-	o.bounds = o.bounds or rect.new{}
+	o.selectable = false
 	o.color = o.color or colors.white
 	o.fill = o.fill or colors.gray
 	o.cache = {}
@@ -13,18 +13,18 @@ function newGraph(o)
 	return gui.newWidget(o, _graph)
 end
 
-function _graph:draw(screen, highlight)
-	self.bounds:fill(screen, colors.black)
+function _graph:draw(highlight)
+	self.bounds:fill(self.parent.screen, self.parent.color)
 	
 	-- iterate each value in cache
 	for i = 1, #self.cache do
 		local x = self.bounds.x + self.bounds.width - i
 		local y = self.bounds.y + (1-self.cache[i]) * (self.bounds.height - 1)
 		
-		gui.setPixel(screen, x, y, self.color)
+		gui.setPixel(self.parent.screen, x, y, self.color)
 		local frect = rect.new(x, y + 1, 1,
-			self.bounds.y + self.bounds.height - y)
-		frect:fill(screen, self.fill)
+			self.bounds.y + self.bounds.height - y - 1)
+		frect:fill(self.parent.screen, self.fill)
 	end
 end
 

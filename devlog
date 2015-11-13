@@ -1,21 +1,21 @@
 -- device log program
 -- by Tastyfish
 
-os.loadAPI "/extlib/dev"
-os.loadAPI "/extlib/gui"
-os.loadAPI "/extlib/db"
-os.loadAPI "/devlog/graph"
+os.loadAPI "extlib/dev"
+os.loadAPI "extlib/gui"
+os.loadAPI "extlib/dlgs"
+os.loadAPI "extlib/db"
+os.loadAPI "devlog/graph"
 
-local logDB = db.openOrCreate("/devlog.log.db", {name="string", date="date", value="number"})
-local devDB = db.openOrCreate("/devlog.dev.db", {name="string", type="string", path="string"})
+multishell.setTitle(multishell.getCurrent(), "Device Log")
+
+local logDB = db.openOrCreate("devlog/log.db", {name="string", date="date", value="number"})
+local devDB = db.openOrCreate("devlog/dev.db", {name="string", type="string", path="string"})
 local modem = dev.get("modem")
-local numTypes, getValueTab = dofile("/devlog/types")
+local numTypes, getValueTab = dofile("devlog/types")
 
 local keepXEntries = 1024
-local screen = term
-local screenW, screenH = screen.getSize()
-screenW = math.floor(screenW / 2) * 2
-screenH = math.floor(screenH / 2) * 2
+local cxt = gui.new(term.current())
 
 local timerInterval = 2 * 60 -- 2 minutes
 local updateTimer = nil
@@ -101,293 +101,295 @@ local function updateDevice(oldName, name, tname, path)
 	logDB("$name == ?", oldName):update {name = name}
 end
 
--- screens
-local pageMainMenu, pageAddDevice, pageListDevices, pageShowDevice, pageShowRawDevice
-
-pageMainMenu = function()
-	gui.finishForm()
-	gui.newLabel {
-		text = "Industrial Device Logger",
-		color = colors.cyan,
-		bounds = rect.new(1, 1, screenW, screenH / 2 - 1)
-	}
-	gui.newButton {
-		text = "View Device Log",
-		bounds = rect.new(2, screenH / 2, screenW - 2, 3),
-		color = colors.green,
-		highlight = colors.lime,
-		click = function()
-			pageListDevices()
-		end,
-	}
-	gui.newButton {
-		text = "Quit",
-		bounds = rect.new(2, screenH / 2 + 4, screenW - 2, 3),
-		color = colors.red,
-		highlight = colors.yellow,
-		click = function()
-			screen.setTextColor(colors.white)
-			screen.setBackgroundColor(colors.black)
-			screen.clear()
-			screen.setCursorPos(1, 1)
-			gui.stop()
-		end,
-	}
-	gui.newButton {
-		text = "+",
-		bounds = rect.new(2, screenH - 1, 3, 1),
-		click = function()
-			pageAddDevice()
-		end
-	}
-	gui.draw(screen)
+local function deleteDevice(name)
+	assert(name)
+	devDB("$name == ?", name):delete()
+	logDB("$name == ?", name):delete()
 end
+
+local function deviceExists(name)
+	assert(name)
+	return devDB("$name == ?", name):selectFirst() ~= nil
+end
+
+-- screens
+local addDevicePage, listDevicesPage, showDevicePage, showRawDevicePage
 
 -- add OR edit device
-pageAddDevice = function(oldDev)
-	gui.finishForm()
-	gui.newLabel {
-		text = oldDev and ("Edit "..oldDev.name) or "Add Device",
-		color = colors.cyan,
-		bounds = rect.new(1, 1, screenW, 1),
-	}
-	gui.newLabel {
-		text = "Name:",
-		align = "far",
-		bounds = rect.new(2, 3, 12, 1)
-	}
-	local nameBox = gui.newTextbox {
-		bounds = rect.new(15, 3, screenW - 15, 1)
-	}
-	gui.newLabel {
-		text = "Type:",
-		align = "far",
-		bounds = rect.new(2, 5, 12, 1)
-	}
-	local typeBox = gui.newListBox {
-		bounds = rect.new(15, 5, screenW - 15, numTypes)
-	}
-	for k,v in pairs(getValueTab) do
-		table.insert(typeBox.items, k)
-	end
-	gui.newLabel {
-		text = "Path:",
-		align = "far",
-		bounds = rect.new(2, 6+numTypes, 12, 1)
-	}
-	local pathBox = gui.newTextbox {
-		bounds = rect.new(15, 6+numTypes, screenW - 15, 1)
-	}
-	local pathBox2 = gui.newTextbox {
-		bounds = rect.new(15, 7+numTypes, screenW - 15, 1)
-	}
-	local pathBox3 = gui.newTextbox {
-		bounds = rect.new(15, 8+numTypes, screenW - 15, 1)
-	}
-	gui.newButton {
-		text = oldDev and "Fix" or "New",
-		color = colors.green,
-		highlight = colors.lime,
-		bounds = rect.new(screenW - 5, 9+numTypes, 5, 3),
-		click = function()
-			if nameBox.text ~= "" and pathBox.text ~= "" and typeBox.selectedItem > 0 then
-				if oldDev then
-					updateDevice(tostring(oldDev.name), 
-						nameBox.text, typeBox.items[typeBox.selectedItem],
-						pathBox.text..pathBox2.text..pathBox3.text)
-				else
-					addDevice(nameBox.text, typeBox.items[typeBox.selectedItem],
-						pathBox.text..pathBox2.text..pathBox3.text)
+addDevicePage = cxt:newForm {
+	onSet = function(self)
+		local typeBox = self.widgets.typeBox
+		typeBox.items = { }
+		typeBox.selectedItem = 1
+		typeBox.scrollItem = 1
+		for k,v in pairs(getValueTab) do
+			table.insert(typeBox.items, k)
+		end
+		
+		if self.oldDev then
+			self.widgets.titleBar.text = "Edit "..self.oldDev.name
+			self.widgets.newBtn.text = "Fix"
+			self.widgets.nameBox.text = tostring(self.oldDev.name)
+			local path = tostring(self.oldDev.path)
+			self.widgets.pathBox.text = path:sub(1, self.widgets.pathBox.bounds.width - 4)
+			self.widgets.pathBox2.text = path:sub(self.widgets.pathBox.bounds.width - 3, 2 * self.widgets.pathBox.bounds.width - 8)
+			self.widgets.pathBox3.text = path:sub(2 * self.widgets.pathBox.bounds.width - 7, 3 * self.widgets.pathBox.bounds.width - 12)
+			for i,t in ipairs(typeBox.items) do
+				if t == tostring(self.oldDev.type) then
+					typeBox.selectedItem = i
+					break
 				end
-				pageMainMenu()
-			else
-				screen.clear()
-				print("Invalid input")
-				sleep(1)
-				gui.draw(screen)
 			end
 		end
-	}
-	gui.newButton {
-		text = "Cancel",
-		color = colors.red,
-		highlight = colors.yellow,
-		bounds = rect.new(2, 9+numTypes, 8, 3),
-		click = function()
-			pageMainMenu()
-		end
-	}
-	if oldDev then
-		nameBox.text = tostring(oldDev.name)
-		local path = tostring(oldDev.path)
-		pathBox.text = path:sub(1, pathBox.bounds.width - 4)
-		pathBox2.text = path:sub(pathBox.bounds.width - 3, 2 * pathBox.bounds.width - 8)
-		pathBox3.text = path:sub(2 * pathBox.bounds.width - 7, 3 * pathBox.bounds.width - 12)
-		for i,t in ipairs(typeBox.items) do
-			if t == tostring(oldDev.type) then
-				typeBox.selectedItem = i
-				break
+	end,
+	widgets = {
+		titleBar = dlgs.newTitleBar {
+			text = "Add Device"
+		},
+		gui.newLabel {
+			text = "Name:",
+			align = "far",
+			bounds = rect.new(2, 3, 12, 1)
+		},
+		nameBox = gui.newTextbox {
+			bounds = rect.new(15, 3, -15, 1)
+		},
+		gui.newLabel {
+			text = "Type:",
+			align = "far",
+			bounds = rect.new(2, 5, 12, 1)
+		},
+		typeBox = gui.newListBox {
+			bounds = rect.new(15, 5, -15, numTypes)
+		},
+		gui.newLabel {
+			text = "Path:",
+			align = "far",
+			bounds = rect.new(2, 6+numTypes, 12, 1)
+		},
+		pathBox = gui.newTextbox {
+			bounds = rect.new(15, 6+numTypes, -15, 1)
+		},
+		pathBox2 = gui.newTextbox {
+			bounds = rect.new(15, 7+numTypes, -15, 1)
+		},
+		pathBox3 = gui.newTextbox {
+			bounds = rect.new(15, 8+numTypes, -15, 1)
+		},
+		newBtn = gui.newButton {
+			text = "New",
+			color = colors.green,
+			highlight = colors.lime,
+			bounds = rect.new(-6, 10+numTypes, 5, 3),
+			click = function(self)
+				local w = self.parent.widgets
+				if w.nameBox.text ~= "" and w.pathBox.text ~= "" and w.typeBox.selectedItem > 0 then
+					if self.oldDev then
+						updateDevice(tostring(self.oldDev.name), 
+							w.nameBox.text, w.typeBox.items[w.typeBox.selectedItem],
+							w.pathBox.text..w.pathBox2.text..w.pathBox3.text)
+					else
+						if deviceExists(w.nameBox.text) then
+							dlgs.msgbox(cxt, nil, "Device already exists.", "OK")
+							return
+						end
+						
+						addDevice(w.nameBox.text, w.typeBox.items[w.typeBox.selectedItem],
+							w.pathBox.text..w.pathBox2.text..w.pathBox3.text)
+					end
+					listDevicesPage:show()
+				else
+					dlgs.msgbox(cxt, nil, "Invalid input.", "OK")
+				end
 			end
-		end
-	end
-	gui.draw(screen)
-end
+		},
+		gui.newButton {
+			text = "Cancel",
+			color = colors.red,
+			highlight = colors.pink,
+			bounds = rect.new(2, 10+numTypes, 8, 3),
+			click = function()
+				listDevicesPage:show()
+			end
+		},
+	}
+}
 
-pageListDevices = function()
-	gui.finishForm()
-	gui.newLabel {
-		text = "Select Device"..(byType and " - "..byType or ""),
-		color = colors.cyan,
-		bounds = rect.new(1, 1, screenW, 1),
-	}
-	local typeBox, listBox
-	typeBox = gui.newListBox {
-		bounds = rect.new(2, 3, 8, screenH - 7),
-		items = {},
-		select = function()
-			local t = typeBox.items[typeBox.selectedItem]
-			listBox.items = queryDevByType(t):select("name")
-			listBox.selectedItem = 1
-			listBox.scrollItem = 1
-			listBox:draw(screen)
-		end,
-	}
-	for k,_ in pairs(getValueTab) do
-		table.insert(typeBox.items, k)
-	end
-	listBox = gui.newListBox {
-		bounds = rect.new(11, 3, screenW - 11, screenH - 3),
-		items = devDB():sortByAscending("name"):select("name"),
-		select = function()
-			local devName = listBox.items[listBox.selectedItem]
-			if devName then
-				pageShowDevice(devName)
-			end
-		end,
-	}
-	gui.newButton {
-		text = "Cancel",
-		color = colors.red,
-		highlight = colors.yellow,
-		bounds = rect.new(2, screenH - 3, 8, 3),
-		click = function()
-			pageMainMenu()
+listDevicesPage = cxt:newForm {
+	onSet = function(self)
+		local typeBox = self.widgets.typeBox
+		self.context.selectedWidget = typeBox
+		
+		typeBox.items = {}
+		for k,_ in pairs(getValueTab) do
+			table.insert(typeBox.items, k)
 		end
+		typeBox:select()
+	end,
+	widgets = {
+		dlgs.newTitleBar {
+			text = "Select Device"..(byType and " - "..byType or ""),
+		},
+		dlgs.newCloseButton { },
+		gui.newButton {
+			text = "+",
+			bounds = rect.new(1, 1, 3, 1),
+			click = function()
+				addDevicePage:show()
+			end
+		},
+		typeBox = gui.newListBox {
+			bounds = rect.new(1, 3, 8, -2),
+			items = {},
+			select = function(self)
+				local listBox = self.parent.widgets.listBox
+				
+				local t = self.items[self.selectedItem]
+				listBox.items = queryDevByType(t):select("name")
+				listBox.selectedItem = 1
+				listBox.scrollItem = 1
+				listBox:draw(screen)
+			end,
+		},
+		listBox = gui.newListBox {
+			bounds = rect.new(10, 3, -9, -2),
+			items = devDB():sortByAscending("name"):select("name"),
+			autoSelect = false,
+			select = function(self)
+				local devName = self.items[self.selectedItem]
+				if devName then
+					showDevicePage.devName = devName
+					showDevicePage:show()
+				end
+			end,
+		}
 	}
-	gui.draw(screen)
-end
+}
 
 local updateDeviceHandler = nil
 
-pageShowDevice = function(devName)
-	local device = getDevice(devName):values()
-	
-	gui.finishForm()
-	gui.newLabel {
-		text = "View Device - "..device.name.." [ "..device.type.." ]",
-		color = colors.cyan,
-		bounds = rect.new(1, 1, screenW - 3, 1),
-	}
-	gui.newButton {
-		text = "X",
-		bounds = rect.new(screenW - 2, 1, 3, 1),
-		color = colors.red,
-		highlight = colors.yellow,
-		click = function()
-			updateDeviceHandler = nil
-			pageListDevices()
-		end,
-	}
-	local valG = graph.newGraph {
-		bounds = rect.new(1, 3, screenW, screenH - 4),
-		color = colors.yellow,
-		fill = colors.green
-	}
-	for e in queryLogByName(device.name, screenW):sortByAscending("date"):iterate() do
-		valG:addValue(e.value.value)
-	end
-	gui.newButton {
-		text = "View Raw Data",
-		bounds = rect.new(1, screenH, screenW, 1),
-		click = function()
-			updateDeviceHandler = nil
-			pageShowRawDevice(devName)
+showDevicePage = cxt:newForm {
+	onSet = function(self)
+		self.device = getDevice(self.devName):values()
+		local valG = self.widgets.valG
+		
+		self.widgets[1].text = "View Device - "..self.devName.." [ "..self.device.type.." ]"
+		
+		for e in queryLogByName(self.device.name, valG.bounds.width):sortByAscending("date"):iterate() do
+			valG:addValue(e.value.value)
 		end
-	}
-	gui.draw(screen)
-	
-	updateDeviceHandler = function(dname, val)
-		if devName == dname then
-			valG:addValue(val)
-			valG:draw(screen)
-		end
-	end
-end
-
-pageShowRawDevice = function(devName)
-	local device = getDevice(devName):values()
-	local page = 1
-	local pageSize = screenH - 4
-	
-	gui.finishForm()
-	gui.newLabel {
-		text = "View Device - "..device.name.." [ "..device.type.." ]",
-		color = colors.cyan,
-		bounds = rect.new(1, 1, screenW - 7, 1),
-	}
-	gui.newButton {
-		text = "X",
-		bounds = rect.new(screenW - 2, 1, 3, 1),
-		color = colors.red,
-		highlight = colors.yellow,
-		click = function()
-			pageShowDevice(devName)
-		end,
-	}
-	gui.newButton {
-		text = "+",
-		bounds = rect.new(screenW - 6, 1, 3, 1),
-		click = function()
-			pageAddDevice(device)
-		end,
-	}
-	local listBox = gui.newListBox {
-		bounds = rect.new(2, 3, screenW - 2, pageSize)
-	}
-	local pageLabel
-	local function updateList()
-		pageLabel.text = tostring(page)
-		pageLabel:draw(screen)
-		listBox.items = queryLogByName(devName, pageSize, (page - 1) * pageSize):select("date", "value"):values()
-		listBox:draw(screen)
-	end
-	gui.newButton {
-		text = "< Prev",
-		bounds = rect.new(2, 3 + pageSize, screenW / 2 - 3, 1),
-		click = function()
-			if page <= 1 then
-				return
+		
+		updateDeviceHandler = function(dname, val)
+			if devName == dname then
+				valG:addValue(val)
+				valG:draw(screen)
 			end
-			page = page - 1
-			updateList()
 		end
+	end,
+	widgets = {
+		dlgs.newTitleBar {
+			text = "View Device - "
+		},
+		gui.newButton {
+			text = "View Raw Data",
+			bounds = rect.new(1, -1, 0, 1),
+			click = function(self)
+				updateDeviceHandler = nil
+				showRawDevicePage.devName = self.parent.devName
+				showRawDevicePage:show()
+			end
+		},
+		dlgs.newCloseButton {
+			click = function()
+				updateDeviceHandler = nil
+				listDevicesPage:show()
+			end,
+		},
+		valG = graph.newGraph {
+			bounds = rect.new(1, 3, 0, -4),
+			color = colors.yellow,
+			fill = colors.green
+		}
 	}
-	gui.newButton {
-		text = "Next >",
-		bounds = rect.new(screenW / 2 + 3, 3 + pageSize, screenW / 2 - 3, 1),
-		click = function()
-			page = page + 1
-			updateList()
-		end
+}
+
+local pageSize = cxt.height - 4
+local pageBtnW = math.floor(cxt.width / 2 - 3)
+showRawDevicePage = cxt:newForm {
+	onSet = function(self)
+		self.device = getDevice(self.devName):values()
+		self.page = 1
+		
+		self.widgets.lblTitle.text = "View Device - "..self.device.name.." [ "..self.device.type.." ]"
+		
+		self:updateList()
+	end,
+	updateList = function(self)
+		self.widgets.pageLabel.text = tostring(self.page)
+		self.widgets.listBox.items = queryLogByName(self.devName, pageSize, (self.page - 1) * pageSize):select(function(e)
+			return e.date.." - "..e.value
+		end)
+		
+		self.widgets.pageLabel:draw()
+		self.widgets.listBox:draw()
+	end,
+	widgets = {
+		lblTitle = dlgs.newTitleBar {
+			text = "View Device - "
+		},
+		dlgs.newMenuButton {
+			menu = {
+				{"Edit", function()
+					addDevicePage.oldDev = showRawDevicePage.device
+					addDevicePage:show()
+				end},
+				{"Remove", function()
+					dlgs.msgbox(cxt,
+						function(result)
+							if result == 1 then
+								deleteDevice(showRawDevicePage.devName)
+								listDevicesPage:show()
+							end
+						end,
+						"This will permanently delete all log data for "..showRawDevicePage.devName..".", "Delete", "Cancel")
+				end}
+			},
+		},
+		dlgs.newCloseButton {
+			click = function(self)
+				showDevicePage.devName = self.parent.devName
+				showDevicePage:show()
+			end,
+		},
+		listBox = gui.newListBox {
+			bounds = rect.new(1, 3, 0, pageSize)
+		},
+		gui.newButton {
+			text = "< Prev",
+			bounds = rect.new(1, -1, pageBtnW, 1),
+			click = function(self)
+				if self.parent.page <= 1 then
+					return
+				end
+				self.parent.page = self.parent.page - 1
+				self.parent:updateList()
+			end
+		},
+		gui.newButton {
+			text = "Next >",
+			bounds = rect.new(-pageBtnW, -1, pageBtnW, 1),
+			click = function(self)
+				self.parent.page = self.parent.page + 1
+				self.parent:updateList()
+			end
+		},
+		pageLabel = gui.newLabel {
+			text = "1",
+			bounds = rect.new(math.floor(cxt.width / 2) - 1, -1, 5, 1),
+			color = colors.white
+		}
 	}
-	pageLabel = gui.newLabel {
-		text = "1",
-		bounds = rect.new(screenW / 2 - 1, 3 + pageSize, 4, 1),
-		color = colors.yellow
-	}
-	updateList()
-	gui.draw(screen)
-end
+}
 
 local function updateTick()
 	keepOnlyXLogs()
@@ -396,12 +398,12 @@ local function updateTick()
 end
 
 -- main program loop
-updateTick()
-pageMainMenu()
-gui.run(screen, {
+--updateTick()
+listDevicesPage:show()
+cxt:run {
 	timer = function(id)
 		if id == updateTimer then
 			updateTick()
 		end
 	end
-})
+}

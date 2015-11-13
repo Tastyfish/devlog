@@ -6,5 +6,5 @@ return 2, {
 	power = function(periph)
 		local t = periph.getPowerInfo("unknown")[1]
 		return t.getEUStored(), t.getEUCapacity()
-	end,
+	end
 }
